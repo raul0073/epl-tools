@@ -26,6 +26,7 @@ export function useUpdateUser() {
       // update store with server response
       dispatch(setUser(updated));
 
+      
       toast.success('User updated successfully!');
 
       return updated;
