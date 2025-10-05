@@ -2,6 +2,7 @@ export const EPL_TEAM_LOGO_MAP: Record<string, string> = {
   "Arsenal": "Arsenal",
   "Aston Villa": "Aston Villa",
   "Bournemouth": "AFC Bournemouth",
+  "Burnley": "Burnley",
   "Brentford": "Brentford",
   "Brighton": "Brighton & Hove Albion",
   "Chelsea": "Chelsea",
@@ -18,7 +19,6 @@ export const EPL_TEAM_LOGO_MAP: Record<string, string> = {
   "West Ham":  "West Ham United",
   "Wolves" : "Wolverhampton Wanderers",
   "Leeds United": "Leeds United",
-  "Burnley": "burnley",
   "Sunderland": "Sunderland"
 };
 export const EPL_TEAM_ALIAS: Record<string, string> = {

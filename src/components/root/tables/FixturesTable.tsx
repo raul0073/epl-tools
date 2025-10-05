@@ -26,7 +26,7 @@ export const FixturesTable = ({ fixtures }: FixturesTableProps) => {
   const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
 
   const userPredictions = useSelector(
-    (state: RootState) => state.predictions.predictions
+    (state: RootState) => state.currentUser.predictions
   );
 
   const normalizePrediction = (pred?: { home_score?: number | null; away_score?: number | null } | null) => {
