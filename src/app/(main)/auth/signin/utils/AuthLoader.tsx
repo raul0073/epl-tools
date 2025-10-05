@@ -1,4 +1,5 @@
 'use client';
+
 import EntryLoader from "@/components/root/loaders/EntryLoader";
 import { setUser } from "@/lib/slices/user";
 import { RootState } from "@/lib/store";
@@ -18,12 +19,28 @@ export default function AuthLoaderPage({ children }: Props) {
     status: "loading" | "authenticated" | "unauthenticated";
   };
   const [loading, setLoading] = useState(true);
+  const [serverUp, setServerUp] = useState<boolean | null>(null);
   const router = useRouter();
   const dispatch = useDispatch();
   const currentUser = useSelector((state: RootState) => state.currentUser.id);
 
+  // Ping the backend first
+  useEffect(() => {
+    async function pingServer() {
+      try {
+        await fetch("/api/health/ping", { cache: "no-store" });
+        setServerUp(true);
+      } catch {
+        setServerUp(false);
+      }
+    }
+    pingServer();
+  }, []);
+
   useEffect(() => {
     async function initUser() {
+      if (!serverUp) return; // Skip if server is down
+
       if (session?.user && !currentUser) {
         const user = await registerUserOnServer(session);
         if (user.id) {
@@ -38,14 +55,19 @@ export default function AuthLoaderPage({ children }: Props) {
     } else if (status === "unauthenticated") {
       router.replace("/auth/signin");
     }
-  }, [session, status, dispatch, router, currentUser]);
+  }, [session, status, dispatch, router, currentUser, serverUp]);
 
   if (status === "loading" || loading) {
+    return <EntryLoader />;
+  }
+
+  if (serverUp === false) {
     return (
-      <EntryLoader />
+      <div className="p-4 text-center text-red-600">
+        Backend server is currently down. Please try again later.
+      </div>
     );
   }
 
-  // Once session is authenticated and store is ready, render children
   return <>{children}</>;
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCaption, TableCell, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { MatchPrediction } from "@/lib/slices/prediction";
 import { RootState } from "@/lib/store";
 import { cn, formatFixtureStatus, getCustomDate, parseScore } from "@/lib/utils";
@@ -23,7 +23,6 @@ interface EnrichedFixture extends Fixture {
 
 export const FixturesTable = ({ fixtures }: FixturesTableProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [isFixtureDataAvailable, setIsFixtureDataAvailable] = useState(false);
   const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
 
   const userPredictions = useSelector(
@@ -39,21 +38,38 @@ export const FixturesTable = ({ fixtures }: FixturesTableProps) => {
   };
 
   const groupedByDay = useMemo(() => {
-    return fixtures.map((f) => {
+    const enriched = fixtures.map((f) => {
       const _status = formatFixtureStatus(f);
 
-      let _userPrediction: MatchPrediction | null = null;
       const roundPreds = userPredictions?.[f.week]?.matches ?? [];
       const key = f.temp_id ?? String(f.game_id);
-      _userPrediction = roundPreds.find((m) => m.game_id === key) ?? null;
+      const _userPrediction =
+        roundPreds.find((m) => m.game_id === key) ?? null;
 
       return { ...f, _status, _userPrediction };
-    }).reduce<Record<string, EnrichedFixture[]>>((acc, f) => {
-      const dayKey = new Date(f.date).toISOString().split("T")[0];
-      if (!acc[dayKey]) acc[dayKey] = [];
-      acc[dayKey].push(f);
-      return acc;
-    }, {});
+    });
+
+    const grouped = enriched.reduce<Record<string, EnrichedFixture[]>>(
+      (acc, f) => {
+        const dayKey = new Date(f.date).toISOString().split("T")[0];
+        if (!acc[dayKey]) acc[dayKey] = [];
+        acc[dayKey].push(f);
+        return acc;
+      },
+      {}
+    );
+
+    // Sort fixtures inside each day by time
+    Object.keys(grouped).forEach((day) => {
+      grouped[day].sort((a, b) => {
+        // assuming f.time is like "20:45" or "14:00"
+        const [aH, aM] = a.time.split(":").map(Number);
+        const [bH, bM] = b.time.split(":").map(Number);
+        return aH * 60 + aM - (bH * 60 + bM);
+      });
+    });
+
+    return grouped;
   }, [fixtures, userPredictions]);
 
   const openDrawer = (f: Fixture) => {
@@ -66,11 +82,12 @@ export const FixturesTable = ({ fixtures }: FixturesTableProps) => {
       <div>
         {Object.entries(groupedByDay).map(([day, dayFixtures]) => (
           <Card key={day} className="p-1 w-full border-none shadow-none bg-transparent rounded">
-            <CardContent className="p-0">
-              <TableCaption className="text-xs font-bold mb-1 border-b-2 w-full bg-muted">
+            <CardHeader className="p-0 text-center gap-0">
+              <CardDescription className="text-xs font-bold border-b-2 w-full bg-muted">
                 {getCustomDate(day)}
-              </TableCaption>
-              <Table>
+              </CardDescription></CardHeader>
+            <CardContent className="p-0">
+              <Table className="py-0 my-0">
                 <TableBody>
                   {dayFixtures.map((f) => {
                     const { isFinished, homeScoreClass, awayScoreClass, time, statusDisplay } = f._status;
@@ -118,13 +135,13 @@ export const FixturesTable = ({ fixtures }: FixturesTableProps) => {
                               !isFinished && "text-center"
                             )}
                           >
-                            {statusDisplay}
+
                           </TableCell>
                         </TableRow>
 
                         <TableRow className="border-b-2 border-input/60 py-1 px-0 gap-0 my-0 bg-muted/60">
                           <TableCell colSpan={3} className="text-xs">
-                            Your prediction: {predictionString ?? "Is not set."}
+                            <div className="w-full flex justify-between"><span>  Your prediction:</span> <span>{predictionString ?? "Is not set."}</span></div>
                           </TableCell>
                         </TableRow>
                       </Fragment>

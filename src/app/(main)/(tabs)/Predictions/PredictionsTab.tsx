@@ -2,8 +2,8 @@
 
 import { Countdown } from "@/components/root/countdown/Coutdown";
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCaption, TableCell, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { usePredictionGate } from "@/lib/hooks/userPredictionGate";
 import { useUpdateUser } from '@/lib/hooks/useUpdateUser';
 import { setUser } from '@/lib/slices/user';
@@ -15,6 +15,7 @@ import Image from "next/image";
 import { Dispatch, Fragment, SetStateAction, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { PredictionCell } from './PredictionCell';
+import { findPrediction, groupFixturesByDay, normalizePredictionsForApi } from "./utils/predictions";
 
 interface PredictionTabProps {
   fixtures: Fixture[];
@@ -29,48 +30,16 @@ export const PredictionTab = ({ fixtures, round, setRound }: PredictionTabProps)
   const { updateUser, loading } = useUpdateUser();
   const { isClosed, gateCloseTime } = usePredictionGate(fixtures);
 
-  // Group fixtures by day
-  const groupedByDay = useMemo(() => {
-    return fixtures.reduce<Record<string, Fixture[]>>((acc, f) => {
-      const dayKey = new Date(f.date).toISOString().split('T')[0];
-      (acc[dayKey] ||= []).push(f);
-      return acc;
-    }, {});
-  }, [fixtures]);
-
-  const prevRound = () => setRound(r => (r ? Math.max(1, r - 1) : 1));
-  const nextRound = () => setRound(r => (r ? r + 1 : 1));
-
-  // Normalize predictions for API
-  const normalizePredictionsForApi = (predictions: typeof predictionsByRound) => {
-    //eslint-disable-next-line
-    const normalized: Record<number, any> = {};
-    for (const [roundStr, round] of Object.entries(predictions)) {
-      const roundNum = Number(roundStr);
-      normalized[roundNum] = {
-        ...round,
-        matches: round.matches.map(m => ({
-          ...m,
-          home_team: m.home_team ?? undefined,
-          away_team: m.away_team ?? undefined,
-          home_score: m.home_score ?? undefined,
-          away_score: m.away_score ?? undefined,
-        })),
-      };
-    }
-    return normalized;
-  };
+  const groupedByDay = useMemo(
+    () => groupFixturesByDay(fixtures),
+    [fixtures]
+  );
 
   const handleSavePredictions = async () => {
     if (!currentUser?.id) return;
     try {
       const normalizedPredictions = normalizePredictionsForApi(predictionsByRound);
-
-      const updatedUser = {
-        ...currentUser,
-        predictions: normalizedPredictions,
-      };
-
+      const updatedUser = { ...currentUser, predictions: normalizedPredictions };
       const res = await updateUser(updatedUser);
       if (res) dispatch(setUser(res));
     } catch (err) {
@@ -78,17 +47,9 @@ export const PredictionTab = ({ fixtures, round, setRound }: PredictionTabProps)
     }
   };
 
-  const findPrediction = (roundNumber: number, gameId: string) => {
-    const round = predictionsByRound[roundNumber];
-    return round?.matches.find(m => m.game_id === gameId);
-  };
+  const prevRound = () => setRound(r => (r ? Math.max(1, r - 1) : 1));
+  const nextRound = () => setRound(r => (r ? r + 1 : 1));
 
-  const normalizePredictionDisplay = (pred?: { home_score?: number | null; away_score?: number | null }) => {
-    if (!pred) return 'Not set';
-    const home = pred.home_score ?? '–';
-    const away = pred.away_score ?? '–';
-    return home === '–' && away === '–' ? 'Not set' : `${home} - ${away}`;
-  };
 
   return (
     <div className="space-y-2">
@@ -106,18 +67,20 @@ export const PredictionTab = ({ fixtures, round, setRound }: PredictionTabProps)
       {Object.entries(groupedByDay).map(([day, dayFixtures]) => (
         <Card key={day} className="p-3 w-full border-none gap-0 shadow-none bg-transparent rounded">
           <CardContent className="p-0">
-            <TableCaption className="text-xs font-bold mb-1 border-b-2 w-full bg-muted p-0 gap-0">
+            <CardDescription className="text-xs text-center font-bold mb-1 border-b-2 w-full bg-muted p-0 gap-0">
               {getCustomDate(day)}
-            </TableCaption>
+            </CardDescription>
             <Table className="rounded-none">
               <TableBody>
                 {dayFixtures.map((f, idx) => {
-                  const fixtureKey = f.game_id ?? f.temp_id ?? `${f.home_team}-${f.away_team}-${idx}`;
-                  const pred = round !== null ? findPrediction(round, String(fixtureKey)) : undefined;
+                  const fixtureKey = Number(f.game_id) === 0 ? f.temp_id : f.game_id;
+                  const pred =
+                    round !== null ? findPrediction(predictionsByRound, round, String(fixtureKey)) : undefined
+
+
                   const { isFinished, homeScoreClass, awayScoreClass, homeScoreStr, awayScoreStr } = formatFixtureStatus(f);
                   const homeScore = Number(homeScoreStr);
                   const awayScore = Number(awayScoreStr);
-                  const matchPrediction = normalizePredictionDisplay(pred);
                   const points =
                     isFinished && pred
                       ? resolvePredictionScore(
@@ -129,43 +92,58 @@ export const PredictionTab = ({ fixtures, round, setRound }: PredictionTabProps)
 
                   return (
                     <Fragment key={fixtureKey}>
-                      <TableRow className="p-1">
-                        {/* Home Team */}
-                        <TableCell className="flex justify-between p-1 gap-1 items-center">
+                      {/* Main fixture row */}
+                      <TableRow>
+                        <TableCell className="text-xs w-12 p-1 text-muted-foreground">{f.time}</TableCell>
+                        <TableCell className="flex justify-between p-1 gap-1 items-center border-b border-input/40">
                           <div className="flex items-center gap-2">
-                            <Image src={`/logos/epl/${EPL_TEAM_LOGO_MAP[f.home_team]}.png`} alt={f.home_team} width={16} height={16} />
+                            <Image
+                              src={`/logos/epl/${EPL_TEAM_LOGO_MAP[f.home_team]}.png`}
+                              alt={f.home_team}
+                              width={16}
+                              height={16}
+                            />
                             <span className={homeScoreClass}>{f.home_team}</span>
                           </div>
                           <PredictionCell fixture={f} team="home" />
                         </TableCell>
-
-                        {/* Away Team */}
                         <TableCell className="flex justify-between p-1 gap-1 items-center">
                           <div className="flex items-center gap-2">
-                            <Image src={`/logos/epl/${EPL_TEAM_LOGO_MAP[f.away_team]}.png`} alt={f.away_team} width={16} height={16} />
+                            <Image
+                              src={`/logos/epl/${EPL_TEAM_LOGO_MAP[f.away_team]}.png`}
+                              alt={f.away_team}
+                              width={16}
+                              height={16}
+                            />
                             <span className={awayScoreClass}>{f.away_team}</span>
                           </div>
                           <PredictionCell fixture={f} team="away" />
                         </TableCell>
-
-                        {/* Prediction & Points */}
-                        <TableCell colSpan={2} className="text-sm flex justify-between items-center gap-4 w-full bg-muted/60 p-2">
-                          <span className="text-muted-foreground flex gap-2 justify-between w-full">
-                            Your prediction: <span>{matchPrediction}</span>
-                          </span>
-                          {points !== null && (
-                            <span>
-                              Total points{' '}
-                              <span className={cn(points > 0 && 'text-blue-600', points > 2 && 'text-lime-500')}>
-                                {!isFinished ? 'Not started' : pointsString}
-                              </span>
-                            </span>
-                          )}
-                        </TableCell>
                       </TableRow>
+
+                      {/* Full-width prediction/points row */}
+                      <tr className="mb-2">
+                        <td colSpan={3} className="p-2 bg-muted/40">
+                          <div className="flex flex-col md:flex-row justify-between gap-2 w-full">
+                            <div className="flex gap-2 items-center">
+                              <span className="text-xs text-muted-foreground">Your prediction:</span>
+                              <span>{pred?.home_score} : {pred?.away_score}</span>
+                            </div>
+                            {points !== null && (
+                              <div>
+                                Total points{' '}
+                                <span className={cn(points > 0 && 'text-blue-600', points > 2 && 'text-lime-500')}>
+                                  {!isFinished ? 'Not started' : pointsString}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     </Fragment>
                   );
                 })}
+
               </TableBody>
             </Table>
           </CardContent>
