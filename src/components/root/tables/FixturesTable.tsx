@@ -1,8 +1,8 @@
 'use client';
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Drawer } from "@/components/ui/drawer";
 import { Table, TableBody, TableCaption, TableCell, TableRow } from "@/components/ui/table";
+import { MatchPrediction } from "@/lib/slices/prediction";
 import { RootState } from "@/lib/store";
 import { cn, formatFixtureStatus, getCustomDate, parseScore } from "@/lib/utils";
 import { Fixture } from "@/types/api/fixtures";
@@ -11,7 +11,6 @@ import Image from "next/image";
 import { Fragment, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { FixtureDrawer } from "../drawer/FixtureDetails";
-import { MatchPrediction } from "@/lib/slices/prediction";
 
 interface FixturesTableProps {
   fixtures: Fixture[];
@@ -24,6 +23,7 @@ interface EnrichedFixture extends Fixture {
 
 export const FixturesTable = ({ fixtures }: FixturesTableProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isFixtureDataAvailable, setIsFixtureDataAvailable] = useState(false);
   const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
 
   const userPredictions = useSelector(

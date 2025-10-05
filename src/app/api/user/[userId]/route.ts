@@ -5,7 +5,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ use
   try {
     const user = await req.json();
     const { userId } = await params; 
-    console.log("Sending user id:", userId); 
 
     const res = await fetch(`${config.SERVER_URL}/user/update/${userId}`, {
       method: "POST",

@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpCircleIcon, ArrowDownCircleIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,48 +14,62 @@ interface NumberPickerProps {
 }
 
 export const NumberPicker = ({ value, onChange, min = 0, max = 10 }: NumberPickerProps) => {
-  const [localValue, setLocalValue] = useState<number>(value ?? 0);
+  const safeMin = Number.isFinite(min) ? min : 0;
+  const safeMax = Number.isFinite(max) ? max : 10;
+  const clamp = (v: number) => Math.max(safeMin, Math.min(safeMax, v));
 
-  // Sync from prop
+  const [localValue, setLocalValue] = useState<number>(clamp(value ?? safeMin));
+
+  // Sync from prop safely
   useEffect(() => {
-    if (value !== null && value !== undefined) {
-      setLocalValue(value);
+    if (value != null && !isNaN(value)) {
+      setLocalValue(clamp(value));
     }
-  }, [value]);
+  }, [value, safeMin, safeMax]);
 
-  const increment = () => {
+  // Increment and decrement safely
+  const increment = useCallback(() => {
     setLocalValue((prev) => {
-      const next = Math.min(max, prev + 1);
+      const next = clamp(prev + 1);
       onChange(next);
       return next;
     });
-  };
+  }, [onChange, safeMin, safeMax]);
 
-  const decrement = () => {
+  const decrement = useCallback(() => {
     setLocalValue((prev) => {
-      const next = Math.max(min, prev - 1);
+      const next = clamp(prev - 1);
       onChange(next);
       return next;
     });
-  };
+  }, [onChange, safeMin, safeMax]);
 
-  const handleWheel = (e: React.WheelEvent) => {
+  // Wheel handler with safe preventDefault
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     if (e.deltaY < 0) increment();
     else decrement();
-  };
+  }, [increment, decrement]);
 
-  const getAnimation = () => {
-    return {
-      initial: { y: 0, opacity: 1 },
-      animate: { y: 0, opacity: 1 },
-      transition: { duration: 0.15, ease: 'easeOut' as const },
-    };
-  };
+  // Motion animation
+  const getAnimation = useCallback(() => ({
+    initial: { y: -4, opacity: 0.5 },
+    animate: { y: 0, opacity: 1 },
+    exit: { y: 4, opacity: 0.5 },
+    transition: { duration: 0.15, ease: 'easeOut' as const },
+  }), []);
 
   return (
-    <div className="flex items-center select-none w-fit justify-center" onWheel={handleWheel}>
-      <Button size="icon" type="button" variant="ghost" className="rounded-full p-0" onClick={increment}>
+    <div
+      className="flex items-center select-none w-fit justify-center"
+      onWheel={handleWheel}
+      role="spinbutton"
+      aria-valuemin={safeMin}
+      aria-valuemax={safeMax}
+      aria-valuenow={localValue}
+    >
+      <Button size="icon" type="button" variant="ghost" className="rounded-full p-0" onClick={increment} aria-label="Increment">
         <ArrowUpCircleIcon className={cn('text-lime-600')} />
       </Button>
 
@@ -61,7 +77,7 @@ export const NumberPicker = ({ value, onChange, min = 0, max = 10 }: NumberPicke
         {localValue}
       </motion.div>
 
-      <Button size="icon" type="button" variant="ghost" className="rounded-full p-0" onClick={decrement}>
+      <Button size="icon" type="button" variant="ghost" className="rounded-full p-0" onClick={decrement} aria-label="Decrement">
         <ArrowDownCircleIcon className={cn('text-pink-700')} />
       </Button>
     </div>

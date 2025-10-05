@@ -1,6 +1,6 @@
 import { Fixture } from "@/types/api/fixtures";
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -159,4 +159,54 @@ export function formatFixtureStatus(f: Fixture) {
   const statusDisplay = isFinished ? "" : "TBD";
 
   return { isFinished, homeScoreClass, awayScoreClass, time, stringDate, relativeTime, statusDisplay, homeScoreStr, awayScoreStr };
+}
+const TEAM_ALIASES: Record<string, string[]> = {
+  "arsenal": ["arsenal", "gunners"],
+  "aston villa": ["aston villa", "villa"],
+  "bournemouth": ["afc bournemouth", "cherries"],
+  "brentford": ["brentford", "bees"],
+  "brighton & hove albion": ["brighton", "seagulls"],
+  "chelsea": ["chelsea", "blues"],
+  "crystal palace": ["crystal palace", "palace"],
+  "everton": ["everton", "toffees"],
+  "fulham": ["fulham", "cottagers"],
+  "liverpool": ["liverpool", "reds"],
+  "leeds united": ["leeds", "leeds utd", "whites"],
+  "leicester city": ["leicester", "foxes"],
+  "manchester city": ["man city", "manchester c", "city", "citizens"],
+  "manchester united": ["man utd", "manchester utd", "man u", "man united", "united"],
+  "newcastle united": ["newcastle", "newcastle utd", "magpies"],
+  "nott'ham forest": ["nottingham forest", "forest", "reds"],
+  "sheffield united": ["sheffield utd", "blades"],
+  "southampton": ["southampton", "saints"],
+  "tottenham hotspur": ["tottenham", "spurs", "tottenham hotspur"],
+  "west ham united": ["west ham", "hammers"],
+  "wolverhampton wanderers": ["wolves", "wolverhampton"],
+};
+
+/**
+ * Returns true if two team names refer to the same team
+ */
+export function isSameTeam(teamA: string, teamB: string) {
+  if (!teamA || !teamB) return false;
+
+  const normalize = (name: string) => name.trim().toLowerCase();
+
+  const a = normalize(teamA);
+  const b = normalize(teamB);
+
+  // Exact match
+  if (a === b) return true;
+
+  // Check aliases
+  for (const [canonical, aliases] of Object.entries(TEAM_ALIASES)) {
+    if ([canonical, ...aliases].includes(a) && [canonical, ...aliases].includes(b)) {
+      return true;
+    }
+  }
+
+  // One contains the other
+  if (a.includes(b) || b.includes(a)) return true;
+
+  return false;
 }

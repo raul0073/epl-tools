@@ -28,12 +28,11 @@ export type Fixture = {
   temp_id?: string;
 };
 
-
-export interface FixturesApiResponse  {
+export interface FixturesApiResponse {
   meta: {
-    last_updated: string,
-    round: number
-    season: number
-  },
-  fixtures: Fixture[]
+    last_updated: string;
+    round: number;
+    season: number;
+  };
+  fixtures: Fixture[];
 }

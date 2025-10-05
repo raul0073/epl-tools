@@ -11,21 +11,37 @@ import { computeUserStats } from '../utils/cumputeUserStats';
 interface Column {
   label: string;
   tooltip?: string;
+  accessor: keyof ReturnType<typeof computeUserStats>;
 }
 
 const columns: Column[] = [
-  { label: 'P', tooltip: 'Played - Number of predictions made' },
-  { label: 'B', tooltip: 'Bullseye - Number of exact predictions (3 points)' },
-  { label: 'W', tooltip: 'Wins - Number of correct predictions (1 point)' },
-  { label: 'PTS', tooltip: 'Total points accumulated' },
+  { label: 'P', tooltip: 'Played - Number of predictions made', accessor: 'totalPredictions' },
+  { label: 'B', tooltip: 'Bullseye - Number of exact predictions (3 points)', accessor: 'exactPredictions' },
+  { label: 'W', tooltip: 'Wins - Number of correct predictions (1 point)', accessor: 'correctPredictions' },
+  { label: 'PTS', tooltip: 'Total points accumulated', accessor: 'totalPoints' },
 ];
+
+// Optional small component to render table header with tooltip
+function ColumnHeader({ column }: { column: Column }) {
+  if (!column.tooltip) return <>{column.label}</>
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <span className="flex items-center gap-1 cursor-help">
+          {column.label} <Info className="w-3 h-3 text-gray-400" />
+        </span>
+      </PopoverTrigger>
+      <PopoverContent className="w-fit text-[.6rem]">{column.tooltip}</PopoverContent>
+    </Popover>
+  )
+}
 
 interface LeaderboardTableProps {
   data: UserState[];
 }
 
 export default function LeaderboardTable({ data }: LeaderboardTableProps) {
-  // compute stats & sort by totalPoints descending
   const sortedData = useMemo(() => {
     return data
       .map((u) => ({ ...u, stats: computeUserStats(u) }))
@@ -41,18 +57,7 @@ export default function LeaderboardTable({ data }: LeaderboardTableProps) {
           <TableHead>Team</TableHead>
           {columns.map((col) => (
             <TableHead key={col.label}>
-              {col.tooltip ? (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <span className="flex items-center gap-1 cursor-help">
-                      {col.label} <Info className="w-3 h-3 text-gray-400" />
-                    </span>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-fit text-[.6rem]">{col.tooltip}</PopoverContent>
-                </Popover>
-              ) : (
-                col.label
-              )}
+              <ColumnHeader column={col} />
             </TableHead>
           ))}
         </TableRow>
@@ -60,16 +65,17 @@ export default function LeaderboardTable({ data }: LeaderboardTableProps) {
 
       <TableBody>
         {sortedData.map((u, idx) => (
-          <TableRow key={u.id}>
+          <TableRow key={u.id || `${u.name}-${idx}`}>
             <TableCell>{idx + 1}</TableCell>
-            <TableCell><Link href={`/user/${u.id}`}>{u.team_name || u.name}</Link></TableCell>
-            <TableCell>{u.stats.totalPredictions}</TableCell>
-            <TableCell>{u.stats.exactPredictions}</TableCell>
-            <TableCell>{u.stats.correctPredictions}</TableCell>
-            <TableCell>{u.stats.totalPoints}</TableCell>
+            <TableCell>
+              <Link href={`/user/${u.id}`}>{u.team_name || u.name || '—'}</Link>
+            </TableCell>
+            {columns.map(col => (
+              <TableCell key={col.accessor}>{u.stats[col.accessor]}</TableCell>
+            ))}
           </TableRow>
         ))}
       </TableBody>
     </Table>
-  );
+  )
 }
