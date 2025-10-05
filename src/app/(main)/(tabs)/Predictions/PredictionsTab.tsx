@@ -26,7 +26,7 @@ interface PredictionTabProps {
 export const PredictionTab = ({ fixtures, round, setRound }: PredictionTabProps) => {
   const dispatch = useDispatch();
   const currentUser = useSelector((state: RootState) => state.currentUser);
-  const predictionsByRound = useSelector((state: RootState) => state.predictions.predictions);
+  const predictionsByRound = useSelector((state: RootState) => state.currentUser.predictions);
   const { updateUser, loading } = useUpdateUser();
   const { isClosed, gateCloseTime } = usePredictionGate(fixtures);
 
