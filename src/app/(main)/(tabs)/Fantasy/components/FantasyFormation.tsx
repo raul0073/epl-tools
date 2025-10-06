@@ -13,12 +13,15 @@ import { getTeamSquadByGameweek } from '../../../../../../services/fantasy/getTe
 export default function FantasyFormationTab() {
     const userFantasyTeamId = useSelector((state: RootState) => state.currentUser.fantasy_team_id)
     const round = useSelector((state: RootState) => state.meta.currentRound)
+    const [hydrated, setHydrated] = useState(false)
     const [teamData, setTeamData] = useState<FantasyTeamPicksData | null>(null)
     const [loading, setLoading] = useState(false)
 
+    useEffect(() => setHydrated(true), [])
+
     const getData = async () => {
         try {
-            if (!userFantasyTeamId || !round) return toast.error('No team or round selected')
+            if (!userFantasyTeamId || !round) return
             const res = await getTeamSquadByGameweek(userFantasyTeamId, round)
             if (res?.success) setTeamData(res.data)
         } catch (error) {
@@ -30,52 +33,44 @@ export default function FantasyFormationTab() {
     }
 
     useEffect(() => {
-        if (!userFantasyTeamId) return
+        if (!hydrated || !userFantasyTeamId || !round) return
         setLoading(true)
-        if (round !== null) getData()
-    }, [userFantasyTeamId, round])
+        setTeamData(null)
+        getData()
+    }, [hydrated, userFantasyTeamId, round])
 
-    if (!userFantasyTeamId) return <div>No Fantasy Team Detected</div>
+    if (!hydrated) return <FormationSkeleton />
+    if (!userFantasyTeamId || !round) return <div>No Fantasy Team Detected</div>
     if (loading) return <FormationSkeleton />
-    if (!teamData) return <div>No data available</div>
+    if (!teamData) return <FormationSkeleton />
 
-    // Split starting 11 vs substitutes
-    const starting11 = teamData.picks.slice(0, 11)
-    const substitutes = teamData.picks.slice(11)
+    const starting11 = teamData.picks?.slice(0, 11) ?? []
+    const substitutes = teamData.picks?.slice(11) ?? []
 
-    // Group starting 11 by position
     const positions: Record<string, FantasyPick[]> = {
-        GKP: starting11.filter(p => p.player.position === 'GKP'),
-        DEF: starting11.filter(p => p.player.position === 'DEF'),
-        MID: starting11.filter(p => p.player.position === 'MID'),
-        FWD: starting11.filter(p => p.player.position === 'FWD'),
+        GKP: starting11.filter(p => p.player.position === 'GKP') ?? [],
+        DEF: starting11.filter(p => p.player.position === 'DEF') ?? [],
+        MID: starting11.filter(p => p.player.position === 'MID') ?? [],
+        FWD: starting11.filter(p => p.player.position === 'FWD') ?? [],
     }
 
-    // Generate positions for each type based on count
     const getPositions = (type: keyof typeof positions) => {
         const count = positions[type].length
         if (count === 0) return []
         const rows: { top: string; left: string }[] = []
-
         if (type === 'GKP') return [{ top: '89%', left: '50%' }]
-
         const topMap: Record<typeof type, string> = { DEF: '69%', MID: '45%', FWD: '15%', GKP: '95%' }
         const spacing = 100 / (count + 1)
-
         for (let i = 0; i < count; i++) {
-            rows.push({
-                top: topMap[type],
-                left: `${spacing * (i + 1)}%`,
-            })
+            rows.push({ top: topMap[type], left: `${spacing * (i + 1)}%` })
         }
         return rows
     }
 
-
-
     const renderPlayer = (pick: FantasyPick, idx: number, posArr: { top: string; left: string }[]) => {
         const pos = posArr[idx]
         if (!pos) return null
+        const teamLogo = EPL_TEAM_FANTASY_NAMES[pick.player.team] ?? 'default'
 
         return (
             <Fragment key={pick.element}>
@@ -89,21 +84,14 @@ export default function FantasyFormationTab() {
                         zIndex: 2,
                     }}
                 >
-                    {/* Circle with Team Logo */}
                     <div
                         style={{
                             width: 32,
                             height: 32,
                             borderRadius: '50%',
                             border: '1px solid #333',
-                            backgroundColor: pick.is_captain
-                                ? 'yellow'
-                                : pick.is_vice_captain
-                                    ? 'orange'
-                                    : 'white',
-                            backgroundImage: `url("/logos/epl/${encodeURIComponent(
-                                EPL_TEAM_FANTASY_NAMES[pick.player.team]
-                            )}.png")`,
+                            backgroundColor: pick.is_captain ? 'yellow' : pick.is_vice_captain ? 'orange' : 'white',
+                            backgroundImage: `url("/logos/epl/${encodeURIComponent(teamLogo)}.png")`,
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             overflow: 'hidden',
@@ -111,14 +99,10 @@ export default function FantasyFormationTab() {
                             boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
                         }}
                     />
-
-                    {/* Text below circle */}
                     <strong className='text-background font-bold text-xs sm:text-sm'>{pick.player.web_name}</strong>
-
-                    <div className='bg-white rounded-t-sm' >
+                    <div className='bg-white rounded-t-sm'>
                         <strong className='w-full text-xs sm:text-sm'>{pick.player.event_points} pts</strong>
                         <div className='w-full border-t-2 bg-black'>
-
                             <div className='text-muted text-xs'>{pick.player.selected_by_percent}%</div>
                         </div>
                     </div>
@@ -130,8 +114,6 @@ export default function FantasyFormationTab() {
     return (
         <div className="space-y-4">
             <Card className='border-none shadow-none'>
-
-                {/* Pitch with starting 11 */}
                 <CardContent
                     className='p-0'
                     style={{
@@ -151,7 +133,6 @@ export default function FantasyFormationTab() {
                     )}
                 </CardContent>
 
-                {/* Substitutes */}
                 {substitutes.length > 0 && (
                     <div
                         style={{

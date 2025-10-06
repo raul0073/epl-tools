@@ -1,12 +1,14 @@
-import React from 'react'
+import React, { ReactNode } from 'react'
 
 interface ErrorCompProps {
   reason: string
+  action?: ReactNode
 }
 
-const ErrorComp: React.FC<ErrorCompProps> = ({ reason }) => {
+const ErrorComp: React.FC<ErrorCompProps> = ({ reason, action }) => {
   return (
-    <div
+   <div className='w-full px-6 py-12'>
+     <div
       style={{
         padding: '1rem',
         border: '1px solid red',
@@ -17,7 +19,12 @@ const ErrorComp: React.FC<ErrorCompProps> = ({ reason }) => {
       }}
     >
       <strong>Error:</strong> {reason}
+       <div className='action text-primary flex justify-end'>
+      {action? action : null}
     </div>
+    </div>
+   
+   </div>
   )
 }
 

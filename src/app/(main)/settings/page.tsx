@@ -1,4 +1,3 @@
-import React from 'react'
 import AuthLoaderPage from '../auth/signin/utils/AuthLoader'
 import ProfilePage from './components/ProfilePageClientComp'
 

@@ -1,11 +1,11 @@
 'use client'
 
 import ErrorComp from '@/components/root/error/ErrorComp'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { RootState } from '@/lib/store'
 import { FantasyTeamResponse } from '@/types/api/fantasy'
+import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
@@ -17,55 +17,52 @@ import FantasyFormationTab from './components/FantasyFormation'
 export default function FantasyTab() {
     const userFantasyTeamId = useSelector((state: RootState) => state.currentUser.fantasy_team_id)
 
+    const [hydrated, setHydrated] = useState(false)
     const [teamData, setTeamData] = useState<FantasyTeamResponse['data'] | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    // Client hydration guard
+    useEffect(() => { setHydrated(true) }, [])
+
+    // Fetch fantasy team data
     useEffect(() => {
-        if (!userFantasyTeamId) {
-            setError("no fantasy team id")
-            toast.error("No Fantasy team id was found.", {
-                action: (
-                    <Button variant="ghost" className="justify-self-end">
-                        <Link href="/settings">Go to Settings</Link>
-                    </Button>
-                )
-            })
-            return
-        }
+        if (!hydrated || !userFantasyTeamId) return
 
         let isCancelled = false
         setLoading(true)
         setError(null)
 
         getFantasyTeamData(userFantasyTeamId)
-            .then((res: FantasyTeamResponse) => {
-                if (!isCancelled) setTeamData(res.data)
-            })
-            .catch((err) => {
-                console.error(err)
+            .then(res => { if (!isCancelled) setTeamData(res.data) })
+            .catch(err => {
+                console.error('FantasyTeam fetch error', err)
                 if (!isCancelled) setError("Failed to load Fantasy team data.")
+                toast.error("Failed to load Fantasy team data.")
             })
-            .finally(() => {
-                if (!isCancelled) setLoading(false)
-            })
+            .finally(() => { if (!isCancelled) setLoading(false) })
 
         return () => { isCancelled = true }
-    }, [userFantasyTeamId])
+    }, [hydrated, userFantasyTeamId])
 
-    // Error handling
-    if (error) return <ErrorComp reason={error} />
+    if (!hydrated) return <Loading />
+
+    if (!userFantasyTeamId) {
+        return <ErrorComp reason="No Fantasy team id" action={
+            <Link href={'/settings'}>
+                Go to settings  <ArrowRight className='inline' size={16} />
+            </Link>
+        } />
+    }
 
     if (loading) return <Loading />
-
+    if (error) return <ErrorComp reason={error} />
     if (!teamData) return <div className="text-center py-4">No data available</div>
 
-    const { leagues } = teamData
-    const classicLeagues = leagues?.classic ?? []
+    const classicLeagues = teamData.leagues?.classic ?? []
 
     return (
         <div className="space-y-4">
-            {/* Tab Navigation */}
             <div className="w-full flex items-center justify-center gap-4 bg-gradient-to-b from-muted to-transparent p-2 rounded-md text-center">
                 <h2 className="text-xl font-semibold tracking-tight bg-gradient-to-bl from-indigo-600 to-teal-800 bg-clip-text text-transparent">
                     {teamData.name}
@@ -96,12 +93,10 @@ export default function FantasyTab() {
                 </CardContent>
             </Card>
 
-            {/* Formation Tab */}
             <FantasyFormationTab />
 
             <Separator />
 
-            {/* Leagues */}
             <Card className='border-none shadow-none'>
                 <CardHeader>
                     <CardTitle>Leagues</CardTitle>
