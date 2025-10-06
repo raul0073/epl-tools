@@ -1,6 +1,6 @@
 'use client'
 
-import Loading from '@/app/(main)/loading'
+import FormationSkeleton from '@/components/root/loaders/FormationSkeleton'
 import { Card, CardContent } from '@/components/ui/card'
 import { RootState } from '@/lib/store'
 import { FantasyPick, FantasyTeamPicksData } from '@/types/api/fantasy_player'
@@ -36,7 +36,7 @@ export default function FantasyFormationTab() {
     }, [userFantasyTeamId, round])
 
     if (!userFantasyTeamId) return <div>No Fantasy Team Detected</div>
-    if (loading) return <Loading />
+    if (loading) return <FormationSkeleton />
     if (!teamData) return <div>No data available</div>
 
     // Split starting 11 vs substitutes
@@ -133,7 +133,7 @@ export default function FantasyFormationTab() {
 
                 {/* Pitch with starting 11 */}
                 <CardContent
-                className='p-0'
+                    className='p-0'
                     style={{
                         position: 'relative',
                         width: '100%',

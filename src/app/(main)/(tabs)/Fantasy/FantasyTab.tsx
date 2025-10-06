@@ -1,5 +1,6 @@
 'use client'
 
+import ErrorComp from '@/components/root/error/ErrorComp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -12,16 +13,17 @@ import { toast } from 'sonner'
 import { getFantasyTeamData } from '../../../../../services/fantasy/getTeamMeta'
 import Loading from '../../loading'
 import FantasyFormationTab from './components/FantasyFormation'
-import ErrorComp from '@/components/root/error/ErrorComp'
 
 export default function FantasyTab() {
     const userFantasyTeamId = useSelector((state: RootState) => state.currentUser.fantasy_team_id)
-   
+
     const [teamData, setTeamData] = useState<FantasyTeamResponse['data'] | null>(null)
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         if (!userFantasyTeamId) {
+            setError("no fantasy team id")
             toast.error("No Fantasy team id was found.", {
                 action: (
                     <Button variant="ghost" className="justify-self-end">
@@ -32,21 +34,34 @@ export default function FantasyTab() {
             return
         }
 
+        let isCancelled = false
         setLoading(true)
+        setError(null)
+
         getFantasyTeamData(userFantasyTeamId)
-            .then((res: FantasyTeamResponse) => setTeamData(res.data))
+            .then((res: FantasyTeamResponse) => {
+                if (!isCancelled) setTeamData(res.data)
+            })
             .catch((err) => {
                 console.error(err)
-                toast.error("Failed to load Fantasy team data.")
+                if (!isCancelled) setError("Failed to load Fantasy team data.")
             })
-            .finally(() => setLoading(false))
+            .finally(() => {
+                if (!isCancelled) setLoading(false)
+            })
+
+        return () => { isCancelled = true }
     }, [userFantasyTeamId])
 
-     if(!userFantasyTeamId) return <ErrorComp reason="no fantasy team id" />
+    // Error handling
+    if (error) return <ErrorComp reason={error} />
 
     if (loading) return <Loading />
 
-    if (!teamData) return <div>No data available</div>
+    if (!teamData) return <div className="text-center py-4">No data available</div>
+
+    const { leagues } = teamData
+    const classicLeagues = leagues?.classic ?? []
 
     return (
         <div className="space-y-4">
@@ -56,12 +71,13 @@ export default function FantasyTab() {
                     {teamData.name}
                 </h2>
             </div>
-            <Card className='border-none shadow-none'>
 
+            <Card className='border-none shadow-none'>
                 <CardContent className='flex flex-col items-center gap-2 px-1'>
                     <p>Gameweek {teamData.current_event}</p>
-                    <div className='p-6 rounded shadow-lg  bg-lime-400 flex flex-col items-center w-2/3 mx-auto'>
-                        <strong className='text-3xl'>{teamData.summary_event_points}</strong><br />Points
+                    <div className='p-6 rounded shadow-lg bg-lime-400 flex flex-col items-center w-2/3 mx-auto'>
+                        <strong className='text-3xl'>{teamData.summary_event_points}</strong>
+                        <span>Points</span>
                     </div>
                     <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2 w-full'>
                         <span className='flex flex-col justify-center rounded shadow-md p-2 items-center text-center gap-1 border-input/60 bg-muted w-full'>
@@ -76,24 +92,32 @@ export default function FantasyTab() {
                             <span className='text-muted-foreground text-nowrap'>Overall Rank</span>
                             <strong>{new Intl.NumberFormat("he-IL").format(teamData.summary_overall_rank)}</strong>
                         </span>
-
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Formation Tab */}
             <FantasyFormationTab />
+
             <Separator />
+
+            {/* Leagues */}
             <Card className='border-none shadow-none'>
                 <CardHeader>
                     <CardTitle>Leagues</CardTitle>
                     <CardDescription>Classic Leagues & H2H</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                    {teamData.leagues.classic.map((league) => (
-                        <div key={league.id} className="flex justify-between border-b last:border-b-0">
-                            <span>{league.name}</span>
-                            <span>#{new Intl.NumberFormat("he-IL").format(league.entry_rank)}</span>
-                        </div>
-                    ))}
+                    {classicLeagues.length === 0 ? (
+                        <div className="text-center py-2">No leagues found</div>
+                    ) : (
+                        classicLeagues.map((league) => (
+                            <div key={league.id} className="flex justify-between border-b last:border-b-0">
+                                <span>{league.name}</span>
+                                <span>#{new Intl.NumberFormat("he-IL").format(league.entry_rank)}</span>
+                            </div>
+                        ))
+                    )}
                 </CardContent>
             </Card>
         </div>
