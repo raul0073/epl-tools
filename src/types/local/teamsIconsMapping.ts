@@ -21,6 +21,29 @@ export const EPL_TEAM_LOGO_MAP: Record<string, string> = {
   "Leeds United": "Leeds United",
   "Sunderland": "Sunderland"
 };
+export const EPL_TEAM_FANTASY_NAMES: Record<string, string> = {
+  "Arsenal": "Arsenal",
+  "Aston Villa": "Aston Villa",
+  "Bournemouth": "AFC Bournemouth",
+  "Burnley": "Burnley",
+  "Brentford": "Brentford",
+  "Brighton": "Brighton & Hove Albion",
+  "Chelsea": "Chelsea",
+  "Crystal Palace": "Crystal Palace",
+  "Everton": "Everton",
+  "Fulham": "Fulham",
+  "Liverpool": "Liverpool",
+  "Man City": "Manchester City",
+  "Man Utd": "Manchester United",
+  "Newcastle Utd": "Newcastle United",
+  "Nott'ham Forest": "Nottingham Forest",
+  "Southampton": "Southampton",
+  "Spurs": "Tottenham Hotspur",
+  "West Ham":  "West Ham United",
+  "Wolves" : "Wolverhampton Wanderers",
+  "Leeds United": "Leeds United",
+  "Sunderland": "Sunderland"
+};
 export const EPL_TEAM_ALIAS: Record<string, string> = {
   "Arsenal": "Arsenal",
   "Aston Villa": "Aston Villa",

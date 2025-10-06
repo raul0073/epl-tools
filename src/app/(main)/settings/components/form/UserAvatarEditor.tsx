@@ -50,9 +50,8 @@ export default function AvatarEditor() {
     }
   };
 
-  const currentAvatarUrl = selected
-    ? generateAvatarUrl(selected.seed, selected.style)
-    : user.picture;
+  const currentAvatarUrl = user.picture
+
 
   return (
     <div className="flex flex-col gap-4">

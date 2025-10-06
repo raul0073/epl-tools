@@ -1,28 +1,29 @@
-
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
-import predictionsReducer from "./slices/prediction";
-import userReducer from "./slices/user";
 import {
-  persistStore,
-  persistReducer,
   FLUSH,
-  REHYDRATE,
   PAUSE,
   PERSIST,
+  persistReducer,
+  persistStore,
   PURGE,
   REGISTER,
+  REHYDRATE,
 } from "redux-persist";
 import storage from "redux-persist/lib/storage"; // localStorage
+import metaReducer from "./slices/meta";
+import predictionsReducer from "./slices/prediction";
+import userReducer from "./slices/user";
 
 const persistConfig = {
   key: "root",
   storage,
-    whitelist: ["currentUser", "predictions"], 
+  whitelist: ["currentUser", "predictions"],
 };
 
 const rootReducer = combineReducers({
   predictions: predictionsReducer,
-  currentUser: userReducer
+  currentUser: userReducer,
+  meta: metaReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

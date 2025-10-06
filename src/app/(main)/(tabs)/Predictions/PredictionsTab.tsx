@@ -16,14 +16,14 @@ import { Dispatch, Fragment, SetStateAction, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { PredictionCell } from './PredictionCell';
 import { findPrediction, groupFixturesByDay, normalizePredictionsForApi } from "./utils/predictions";
+import { updateRound } from "@/lib/slices/meta";
 
 interface PredictionTabProps {
   fixtures: Fixture[];
   round: number | null;
-  setRound: Dispatch<SetStateAction<number | null>>;
 }
 
-export const PredictionTab = ({ fixtures, round, setRound }: PredictionTabProps) => {
+export const PredictionTab = ({ fixtures, round }: PredictionTabProps) => {
   const dispatch = useDispatch();
   const currentUser = useSelector((state: RootState) => state.currentUser);
   const predictionsByRound = useSelector((state: RootState) => state.currentUser.predictions);
@@ -46,11 +46,15 @@ export const PredictionTab = ({ fixtures, round, setRound }: PredictionTabProps)
       console.error(err);
     }
   };
+  const nextRound = () => {
+    const next = (round ?? 1) + 1;
+    dispatch(updateRound(next));
+  };
 
-  const prevRound = () => setRound(r => (r ? Math.max(1, r - 1) : 1));
-  const nextRound = () => setRound(r => (r ? r + 1 : 1));
-
-
+  const prevRound = () => {
+    const prev = Math.max(1, (round ?? 1) - 1);
+    dispatch(updateRound(prev));
+  };
   return (
     <div className="space-y-2">
       {/* Round Navigation */}

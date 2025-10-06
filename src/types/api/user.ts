@@ -81,6 +81,7 @@ export interface UserState {
   name: string | null;
   picture: string | null;
   team_name?: string | null;
+  fantasy_team_id?: number | null;
   predictions: Record<number, RoundPredictions>; // round_number -> RoundPredictions
   season_predictions: SeasonPredictions;
   points: SeasonPoints;

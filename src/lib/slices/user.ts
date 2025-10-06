@@ -7,6 +7,7 @@ const initialState: UserState = {
   name: null,
   picture: null,
   team_name: null,
+  fantasy_team_id: null,
   predictions: {},
   season_predictions: { relegated_teams: [] },
   points: {
@@ -34,6 +35,7 @@ const userSlice = createSlice({
       state.season_predictions = { ...state.season_predictions, ...action.payload.season_predictions };
       state.points = action.payload.points ?? state.points;
       state.private_leagues = action.payload.private_leagues ?? state.private_leagues;
+      state.fantasy_team_id = action.payload.fantasy_team_id ?? state.fantasy_team_id;
     },
 
     clearUser: (state) => {
@@ -42,6 +44,7 @@ const userSlice = createSlice({
       state.name = null;
       state.picture = null;
       state.team_name = null;
+      state.fantasy_team_id = null;
       state.predictions = {};
       state.season_predictions = { relegated_teams: [] };
       state.points = {
