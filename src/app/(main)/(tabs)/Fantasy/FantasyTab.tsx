@@ -12,9 +12,11 @@ import { toast } from 'sonner'
 import { getFantasyTeamData } from '../../../../../services/fantasy/getTeamMeta'
 import Loading from '../../loading'
 import FantasyFormationTab from './components/FantasyFormation'
+import ErrorComp from '@/components/root/error/ErrorComp'
 
 export default function FantasyTab() {
     const userFantasyTeamId = useSelector((state: RootState) => state.currentUser.fantasy_team_id)
+   
     const [teamData, setTeamData] = useState<FantasyTeamResponse['data'] | null>(null)
     const [loading, setLoading] = useState(false)
 
@@ -40,9 +42,7 @@ export default function FantasyTab() {
             .finally(() => setLoading(false))
     }, [userFantasyTeamId])
 
-    if (!userFantasyTeamId) {
-        return <div>No Fantasy Team Detected</div>
-    }
+     if(!userFantasyTeamId) return <ErrorComp reason="no fantasy team id" />
 
     if (loading) return <Loading />
 
